@@ -607,6 +607,39 @@ function renderResult(allVotes) {
   </div>`;
 }
 
+// ── Delete ──
+function confirmDelete(pollId, title) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>🗑️ 투표 삭제</h3>
+      <p>"${title}" 투표를 삭제합니다.<br>생성 시 입력한 비밀번호를 입력하세요.</p>
+      <input class="pin-input" type="password" inputmode="numeric" maxlength="4" placeholder="····" id="del-pin">
+      <div class="error-msg" id="del-error"></div>
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">취소</button>
+        <button class="btn-primary" style="background:linear-gradient(135deg,#E53935,#FF6B6B)" onclick="deletePoll('${pollId}')">삭제</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+  setTimeout(() => document.getElementById("del-pin").focus(), 100);
+}
+
+async function deletePoll(pollId) {
+  const pin = document.getElementById("del-pin").value.trim();
+  const errEl = document.getElementById("del-error");
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = "숫자 4자리를 입력해주세요."; return; }
+  const poll = await dbGet(`polls/${pollId}`);
+  if (!poll) { errEl.textContent = "투표를 찾을 수 없습니다."; return; }
+  if ((poll.pin || "0000") !== pin) { errEl.textContent = "비밀번호가 틀렸습니다."; document.getElementById("del-pin").value = ""; return; }
+  await dbSet(`polls/${pollId}`, null);
+  await dbSet(`votes/${pollId}`, null);
+  document.querySelector(".modal-overlay").remove();
+  showHome();
+}
+
 // ── Util ──
 function sanitizeKey(name) { return name.replace(/[.#$/\[\]]/g, "_"); }
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
