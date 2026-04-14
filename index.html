@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>💕 우리 언제 만나?</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💕</text></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+<!-- ═══════════════════════════════════════════════
+     Firebase SDK (v9 compat)
+     ═══════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Pretendard Variable', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: linear-gradient(160deg, #FFF0F5 0%, #FFE4EC 30%, #FFF5F0 60%, #FFF0F5 100%);
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px 12px 60px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px; padding: 36px 28px;
+    max-width: 540px; width: 100%;
+    box-shadow: 0 8px 40px rgba(255,143,163,.15), 0 1px 3px rgba(0,0,0,.04);
+    border: 1px solid rgba(255,200,210,.4);
+    animation: fadeSlideIn .45s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  .card.wide { max-width: 750px; }
+
+  /* ── Header ── */
+  .header { text-align: center; margin-bottom: 28px; }
+  .header .emoji { font-size: 52px; display: block; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
+  .header h1 { font-size: 26px; font-weight: 800; color: #C23060; letter-spacing: -.5px; margin: 4px 0; }
+  .header p { font-size: 14px; color: #E07090; font-weight: 500; }
+
+  /* ── Sections ── */
+  .section { margin-top: 24px; }
+  .section-title {
+    font-size: 15px; font-weight: 700; color: #B04060;
+    margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #FFE0E8;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    background: linear-gradient(135deg, #FF6B8A, #FF8FA3);
+    color: #fff; border: none; border-radius: 16px;
+    padding: 14px 28px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 3px 12px rgba(255,105,135,.25);
+    font-family: inherit; letter-spacing: .3px;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,105,135,.4); }
+
+  .btn-secondary {
+    background: #fff; color: #D63964; border: 2px solid #FFD0DA;
+    border-radius: 16px; padding: 12px 24px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .2s; font-family: inherit;
+  }
+  .btn-secondary:hover { background: #FFF5F7; }
+
+  .btn-back {
+    background: none; border: none; color: #E07090;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 0 0 12px; display: block; font-family: inherit;
+  }
+
+  .btn-quick {
+    display: block; width: 100%; text-align: center; margin-top: 10px;
+    padding: 10px; background: transparent; border: 1px dashed #FFB3C6;
+    border-radius: 12px; color: #D63964; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .2s; font-family: inherit;
+  }
+  .btn-quick:hover { background: #FFF0F3; }
+
+  .btn-refresh {
+    display: block; width: 100%; padding: 10px;
+    background: #FFF5F7; border: 1px solid #FFD6E0;
+    border-radius: 12px; color: #D63964;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-bottom: 16px; font-family: inherit; transition: opacity .2s;
+  }
+
+  /* ── Inputs ── */
+  input, textarea {
+    width: 100%; padding: 13px 16px;
+    border: 2px solid #FFD6E0; border-radius: 14px;
+    font-size: 14px; outline: none; margin-bottom: 10px;
+    background: #fff; color: #444;
+    transition: border-color .2s; font-family: inherit;
+  }
+  input:focus, textarea:focus {
+    border-color: #FF8FA3; box-shadow: 0 0 0 3px rgba(255,143,163,.15);
+  }
+  textarea { min-height: 80px; resize: vertical; }
+
+  /* ── Poll list cards ── */
+  .poll-card {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; padding: 14px 18px; margin-bottom: 8px;
+    background: #fff; border: 1px solid #FFE0E8; border-radius: 14px;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 2px 8px rgba(255,143,163,.15);
+    font-size: 15px; font-family: inherit;
+  }
+  .poll-card:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 6px 20px rgba(255,143,163,.3); }
+  .poll-card .title { font-weight: 600; color: #444; }
+  .poll-card .meta {
+    font-size: 13px; color: #E07090; font-weight: 600;
+    background: #FFF0F3; padding: 3px 10px; border-radius: 20px;
+  }
+
+  /* ── User grid ── */
+  .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .user-btn {
+    border: none; border-radius: 18px; padding: 20px 12px;
+    cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1);
+    box-shadow: 0 3px 10px rgba(0,0,0,.06);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  .user-btn:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 8px 25px rgba(0,0,0,.12); }
+  .user-btn .name { font-size: 17px; font-weight: 700; color: #444; }
+  .user-btn .voted { font-size: 11px; color: #2E7D32; font-weight: 600; background: rgba(255,255,255,.7); padding: 2px 8px; border-radius: 10px; }
+
+  /* ── Grid table ── */
+  .grid-wrap { overflow-x: auto; margin-top: 8px; border-radius: 16px; -webkit-overflow-scrolling: touch; }
+  .grid {
+    display: grid;
+    grid-template-columns: 80px repeat(5, 1fr);
+    gap: 3px; min-width: 460px;
+  }
+  .grid-day {
+    text-align: center; font-weight: 700; font-size: 13px; color: #C23060;
+    padding: 10px 4px; background: rgba(255,200,210,.25); border-radius: 10px;
+  }
+  .grid-slot {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; font-size: 11px; font-weight: 700; color: #B04060;
+    background: rgba(255,200,210,.2); border-radius: 10px; padding: 6px 2px;
+  }
+  .grid-slot .icon { font-size: 14px; }
+
+  /* Vote cells */
+  .cell {
+    border-radius: 10px; border: 1px solid #FFE8ED;
+    min-height: 42px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+    cursor: pointer; transition: all .2s; font-size: 18px;
+    background: #FFF5F7; color: #999;
+  }
+  .cell.selected {
+    background: linear-gradient(135deg, #FF8FA3, #FFB3C6);
+    color: #fff; transform: scale(.97);
+    box-shadow: inset 0 2px 8px rgba(200,50,80,.15), 0 2px 8px rgba(255,143,163,.2);
+  }
+  .cell:not(.selected):hover { background: #FFE0E6; }
+  .cell .count { font-size: 9px; font-weight: 600; opacity: .7; }
+
+  /* Result cells */
+  .r-cell {
+    border-radius: 10px; min-height: 50px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; padding: 4px 2px;
+    position: relative; transition: all .2s;
+    border: 1px solid #F0E0E4; background: #FAFAFA;
+  }
+  .r-cell.best {
+    background: linear-gradient(135deg, #FF8FA3, #FFB3C6);
+    border: 2px solid #FF6B8A;
+  }
+  .r-cell .num { font-size: 16px; font-weight: 700; color: #CCC; }
+  .r-cell.has .num { color: #D63964; }
+  .r-cell.best .num { color: #fff; }
+  .r-cell .crown { position: absolute; top: -4px; right: -2px; font-size: 12px; }
+  .r-cell .voters { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+  .r-cell .vtag {
+    font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 8px;
+    color: #555;
+  }
+  .r-cell.best .vtag { background: rgba(255,255,255,.35); color: #fff; }
+
+  /* ── Best box ── */
+  .best-box {
+    background: linear-gradient(135deg, #FF8FA3, #FFB3C6);
+    border-radius: 18px; padding: 18px 20px; text-align: center;
+    margin-bottom: 16px; box-shadow: 0 4px 16px rgba(255,100,130,.2);
+  }
+  .best-box .label { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .best-box .slots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 6px; }
+  .best-box .badge {
+    background: rgba(255,255,255,.35); color: #fff; font-weight: 700;
+    font-size: 14px; padding: 6px 14px; border-radius: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .best-box .cnt { font-size: 13px; color: rgba(255,255,255,.9); font-weight: 600; }
+
+  /* ── Not voted ── */
+  .not-voted {
+    background: #FFF8E7; border: 1px solid #FFE0A0; border-radius: 14px;
+    padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #8B6914;
+  }
+  .not-voted b { font-weight: 700; }
+
+  /* ── Flex row ── */
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+
+  /* ── Config notice ── */
+  .config-notice {
+    background: #FFF0F0; border: 2px solid #FFB3BA; border-radius: 16px;
+    padding: 24px; text-align: center; color: #C23060;
+  }
+  .config-notice h2 { margin-bottom: 12px; }
+  .config-notice code { background: #FFE0E6; padding: 2px 8px; border-radius: 6px; font-size: 13px; }
+
+  /* ── Loading ── */
+  .loading { text-align: center; padding-top: 100px; }
+  .loading .spin { font-size: 48px; animation: pulse 1.2s ease-in-out infinite; }
+  .loading p { color: #D63964; font-size: 16px; margin-top: 12px; }
+
+  /* ── Realtime indicator ── */
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px;
+    background: #4CAF50; border-radius: 50%; margin-right: 6px;
+    animation: blink 2s infinite;
+  }
+  .live-label { font-size: 11px; color: #888; font-weight: 500; text-align: center; margin-bottom: 12px; }
+
+  /* ── Animations ── */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.2); }
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%     { opacity: .3; }
+  }
+</style>
+</head>
+
+<body>
+<div id="app">
+  <div class="loading">
+    <div class="spin">💕</div>
+    <p>로딩 중...</p>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  🔥 Firebase 설정  ← 여기에 본인 Firebase 설정을 붙여넣으세요!
+// ════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBQ11uPoUXH7FAx5IMGgNNzXIvJ0yoWMP4",
+  authDomain: "class-manager-song.firebaseapp.com",
+  databaseURL: "https://class-manager-song-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "class-manager-song",
+  storageBucket: "class-manager-song.firebasestorage.app",
+  messagingSenderId: "740179194110",
+  appId: "1:740179194110:web:3ddb2dca3640ecd21035af"
+};
+// ════════════════════════════════════════════════════
+
+const DAYS  = ["월", "화", "수", "목", "금"];
+const SLOTS = ["1교시","2교시","3교시","4교시","점심시간","5교시","6교시","7교시"];
+const ICONS = ["📖","📝","📐","📚","🍱","✏️","🔬","🎒"];
+const COLORS = ["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E8BAFF"];
+const DEFAULT_MEMBERS = ["백은경","유현주","이숙향","조현공","김하은","송석리"];
+
+const $ = (s) => document.querySelector(s);
+const app = document.getElementById("app");
+
+let db, currentPollId, currentPollData, currentUser;
+let pollListener = null;
+
+// ── Init ──
+function init() {
+  if (!firebaseConfig.apiKey) {
+    app.innerHTML = renderConfigNotice();
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  showHome();
+}
+
+// ── Firebase helpers ──
+function dbSet(path, data) { return db.ref(path).set(data); }
+function dbGet(path) { return db.ref(path).once("value").then(s => s.val()); }
+function dbListen(path, cb) {
+  if (pollListener) pollListener();
+  const ref = db.ref(path);
+  const fn = ref.on("value", snap => cb(snap.val()));
+  pollListener = () => ref.off("value", fn);
+}
+
+// ── Render helpers ──
+function animateCard() {
+  requestAnimationFrame(() => {
+    const card = app.querySelector(".card");
+    if (card) { card.style.animation = "none"; card.offsetHeight; card.style.animation = ""; }
+  });
+}
+
+function renderConfigNotice() {
+  return `<div class="card"><div class="config-notice">
+    <h2>🔧 Firebase 설정 필요</h2>
+    <p>index.html 파일 상단의 <code>firebaseConfig</code>에<br>Firebase 프로젝트 정보를 입력해주세요.</p>
+    <p style="margin-top:12px;font-size:13px;color:#888">설정 가이드는 README.md를 참고하세요 📖</p>
+  </div></div>`;
+}
+
+// ════════════════════════════════════════════════════
+//  HOME
+// ════════════════════════════════════════════════════
+async function showHome() {
+  const polls = (await dbGet("polls")) || {};
+  const list = Object.entries(polls)
+    .map(([id, d]) => ({ id, ...d }))
+    .sort((a, b) => (b.created || 0) - (a.created || 0));
+
+  app.innerHTML = `
+  <div class="card">
+    <div class="header">
+      <span class="emoji">💕</span>
+      <h1>우리 언제 만나?</h1>
+      <p>시간 약속 투표</p>
+    </div>
+    ${list.length ? `
+    <div class="section">
+      <h3 class="section-title">📋 진행 중인 투표</h3>
+      ${list.map(p => `
+        <button class="poll-card" onclick="openPoll('${p.id}')">
+          <span class="title">${esc(p.title)}</span>
+          <span class="meta">${(p.members||[]).length}명</span>
+        </button>
+      `).join("")}
+    </div>` : ""}
+    <div class="section">
+      <h3 class="section-title">✨ 새 투표 만들기</h3>
+      <input id="inp-title" placeholder="투표 제목 (예: 수리정보교육부 회의)">
+      <textarea id="inp-members" placeholder="참여자 이름 (쉼표로 구분)&#10;예: 백은경, 유현주, 이숙향, 조현공, 김하은, 송석리"></textarea>
+      <button class="btn-primary" onclick="createPoll()">💖 투표 시작하기</button>
+      <button class="btn-quick" onclick="quickStart()">⚡ 수리정보교육부 바로 시작</button>
+    </div>
+  </div>`;
+}
+
+async function createPoll() {
+  const title = (document.getElementById("inp-title").value.trim()) || "시간 약속 투표";
+  const raw = document.getElementById("inp-members").value.trim();
+  const members = raw ? raw.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean) : DEFAULT_MEMBERS;
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  await dbSet(`polls/${id}`, { title, members, created: Date.now() });
+  openPoll(id);
+}
+
+function quickStart() {
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  dbSet(`polls/${id}`, { title: "수리정보교육부 시간 약속", members: DEFAULT_MEMBERS, created: Date.now() })
+    .then(() => openPoll(id));
+}
+
+// ════════════════════════════════════════════════════
+//  SELECT USER
+// ════════════════════════════════════════════════════
+async function openPoll(id) {
+  currentPollId = id;
+  currentUser = null;
+  const poll = await dbGet(`polls/${id}`);
+  if (!poll) { showHome(); return; }
+  currentPollData = poll;
+  const votes = (await dbGet(`votes/${id}`)) || {};
+
+  app.innerHTML = `
+  <div class="card">
+    <button class="btn-back" onclick="showHome()">← 홈으로</button>
+    <div class="header">
+      <span class="emoji">🙋‍♀️</span>
+      <h1>${esc(poll.title)}</h1>
+      <p>선생님 성함을 선택해주세요!</p>
+    </div>
+    <div class="user-grid">
+      ${poll.members.map((name, i) => {
+        const v = votes[sanitizeKey(name)];
+        const hasVoted = v && Object.keys(v).length > 0;
+        return `<button class="user-btn" style="background:linear-gradient(135deg,${COLORS[i%6]}88,${COLORS[(i+1)%6]}88)" onclick="selectUser('${esc(name)}')">
+          <span class="name">${esc(name)}</span>
+          ${hasVoted ? '<span class="voted">✅ 투표완료</span>' : ''}
+        </button>`;
+      }).join("")}
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="showResult()">📊 전체 결과 보기</button>
+    </div>
+  </div>`;
+}
+
+function selectUser(name) { currentUser = name; showVote(); }
+
+// ════════════════════════════════════════════════════
+//  VOTE
+// ════════════════════════════════════════════════════
+function showVote() {
+  const userKey = sanitizeKey(currentUser);
+  dbListen(`votes/${currentPollId}/${userKey}`, (data) => {
+    renderVoteGrid(data || {});
+  });
+}
+
+function renderVoteGrid(userVotes) {
+  app.innerHTML = `
+  <div class="card wide">
+    <button class="btn-back" onclick="openPoll('${currentPollId}')">← 선생님 선택</button>
+    <div class="header">
+      <span class="emoji">📅</span>
+      <h1>${esc(currentUser)} 선생님</h1>
+      <p>가능한 시간을 탭하세요 💗</p>
+    </div>
+    <div class="live-label"><span class="live-dot"></span>실시간 동기화 중</div>
+    <div class="grid-wrap">
+      <div class="grid">
+        <div></div>
+        ${DAYS.map(d => `<div class="grid-day">${d}요일</div>`).join("")}
+        ${SLOTS.map((slot, si) => `
+          <div class="grid-slot"><span class="icon">${ICONS[si]}</span>${slot}</div>
+          ${DAYS.map(d => {
+            const key = `${d}_${slot}`;
+            const sel = userVotes[key] === true;
+            return `<div class="cell ${sel ? 'selected' : ''}" onclick="toggleVote('${d}','${slot}')">
+              ${sel ? '💖' : ''}
+            </div>`;
+          }).join("")}
+        `).join("")}
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="showResult()">📊 전체 결과 보기</button>
+      <button class="btn-secondary" onclick="openPoll('${currentPollId}')">👥 다른 선생님으로</button>
+    </div>
+  </div>`;
+}
+
+function toggleVote(day, slot) {
+  const userKey = sanitizeKey(currentUser);
+  const key = `${day}_${slot}`;
+  const ref = db.ref(`votes/${currentPollId}/${userKey}/${key}`);
+  ref.once("value").then(snap => {
+    ref.set(snap.val() === true ? null : true);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  RESULT
+// ════════════════════════════════════════════════════
+function showResult() {
+  dbListen(`votes/${currentPollId}`, (allVotes) => {
+    renderResult(allVotes || {});
+  });
+}
+
+function renderResult(allVotes) {
+  const poll = currentPollData;
+  const members = poll.members;
+
+  // Count per slot
+  function getVoters(day, slot) {
+    const key = `${day}_${slot}`;
+    return members.filter(m => {
+      const v = allVotes[sanitizeKey(m)];
+      return v && v[key] === true;
+    });
+  }
+
+  // Best slots
+  let maxCount = 0, bestSlots = [];
+  DAYS.forEach(d => SLOTS.forEach(s => {
+    const c = getVoters(d, s).length;
+    if (c > maxCount) { maxCount = c; bestSlots = [{d,s}]; }
+    else if (c === maxCount && c > 0) bestSlots.push({d,s});
+  }));
+  const isBest = (d,s) => bestSlots.some(b => b.d===d && b.s===s);
+
+  // Not voted
+  const notVoted = members.filter(m => {
+    const v = allVotes[sanitizeKey(m)];
+    return !v || Object.keys(v).length === 0;
+  });
+
+  app.innerHTML = `
+  <div class="card wide">
+    <button class="btn-back" onclick="openPoll('${currentPollId}')">← 돌아가기</button>
+    <div class="header">
+      <span class="emoji">📊</span>
+      <h1>${esc(poll.title)}</h1>
+      <p>투표 현황</p>
+    </div>
+    <div class="live-label"><span class="live-dot"></span>실시간 자동 업데이트</div>
+    ${maxCount > 0 ? `
+    <div class="best-box">
+      <div class="label">🏆 가장 많은 선생님이 가능한 시간</div>
+      <div class="slots">${bestSlots.map(b => `<span class="badge">${b.d}요일 ${b.s}</span>`).join("")}</div>
+      <div class="cnt">${maxCount}명 가능</div>
+    </div>` : ""}
+    ${notVoted.length ? `
+    <div class="not-voted">
+      <b>🔔 아직 투표 안 한 선생님:</b> ${notVoted.map(n => `<b>${esc(n)}</b>`).join(", ")}
+    </div>` : ""}
+    <div class="grid-wrap">
+      <div class="grid">
+        <div></div>
+        ${DAYS.map(d => `<div class="grid-day">${d}요일</div>`).join("")}
+        ${SLOTS.map((slot, si) => `
+          <div class="grid-slot"><span class="icon">${ICONS[si]}</span>${slot}</div>
+          ${DAYS.map(d => {
+            const voters = getVoters(d, slot);
+            const best = isBest(d, slot) && maxCount > 0;
+            const hasVoters = voters.length > 0;
+            return `<div class="r-cell ${best ? 'best' : ''} ${hasVoters ? 'has' : ''}"
+              ${hasVoters && !best ? `style="background:rgba(255,179,198,${.15 + voters.length * .12})"` : ""}>
+              ${best ? '<span class="crown">👑</span>' : ''}
+              <span class="num">${voters.length}명</span>
+              <div class="voters">
+                ${voters.map(v => {
+                  const ci = members.indexOf(v) % 6;
+                  const bg = best ? 'rgba(255,255,255,.35)' : COLORS[ci] + '66';
+                  return `<span class="vtag" style="background:${bg}">${esc(v)}</span>`;
+                }).join("")}
+              </div>
+            </div>`;
+          }).join("")}
+        `).join("")}
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="openPoll('${currentPollId}')">✏️ 투표하러 가기</button>
+      <button class="btn-secondary" onclick="showHome()">🏠 홈으로</button>
+    </div>
+  </div>`;
+}
+
+// ── Util ──
+function sanitizeKey(name) { return name.replace(/[.#$/\[\]]/g, "_"); }
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+// ── GO ──
+init();
+</script>
+</body>
+</html>
