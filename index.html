@@ -13,6 +13,7 @@
      ═══════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,6 +43,8 @@
   /* ── Header ── */
   .header { text-align: center; margin-bottom: 28px; }
   .header .emoji { font-size: 52px; display: block; margin-bottom: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
+  .header .emoji.clickable { cursor: pointer; transition: transform .2s; }
+  .header .emoji.clickable:hover { transform: scale(1.1); }
   .header h1 { font-size: 26px; font-weight: 800; color: #C23060; letter-spacing: -.5px; margin: 4px 0; }
   .header p { font-size: 14px; color: #E07090; font-weight: 500; }
 
@@ -157,7 +160,8 @@
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   /* ── User grid ── */
-  .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .user-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 480px) { .user-grid { grid-template-columns: repeat(3, 1fr); } }
   .user-btn {
     border: none; border-radius: 18px; padding: 20px 12px;
     cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1);
@@ -250,6 +254,16 @@
 
   /* ── Flex row ── */
   .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+
+  .btn-download {
+    background: linear-gradient(135deg, #6C63FF, #8B83FF);
+    color: #fff; border: none; border-radius: 16px;
+    padding: 12px 24px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all .2s; font-family: inherit;
+    box-shadow: 0 3px 12px rgba(108,99,255,.25);
+  }
+  .btn-download:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(108,99,255,.4); }
+  .btn-download:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
   /* ── Config notice ── */
   .config-notice {
@@ -444,7 +458,7 @@ async function openPoll(id) {
   <div class="card">
     <button class="btn-back" onclick="showHome()">← 홈으로</button>
     <div class="header">
-      <span class="emoji">🙋‍♀️</span>
+      <span class="emoji clickable" onclick="showHome()">🙋‍♀️</span>
       <h1>${esc(poll.title)}</h1>
       <p>선생님 성함을 선택해주세요!</p>
     </div>
@@ -481,7 +495,7 @@ function renderVoteGrid(userVotes) {
   <div class="card wide">
     <button class="btn-back" onclick="openPoll('${currentPollId}')">← 선생님 선택</button>
     <div class="header">
-      <span class="emoji">📅</span>
+      <span class="emoji clickable" onclick="showHome()">📅</span>
       <h1>${esc(currentUser)} 선생님</h1>
       <p>가능한 시간을 탭하세요 💗</p>
     </div>
@@ -556,10 +570,10 @@ function renderResult(allVotes) {
   });
 
   app.innerHTML = `
-  <div class="card wide">
+  <div class="card wide" id="result-card">
     <button class="btn-back" onclick="openPoll('${currentPollId}')">← 돌아가기</button>
     <div class="header">
-      <span class="emoji">📊</span>
+      <span class="emoji clickable" onclick="showHome()">📊</span>
       <h1>${esc(poll.title)}</h1>
       <p>투표 현황</p>
     </div>
@@ -602,6 +616,7 @@ function renderResult(allVotes) {
     </div>
     <div class="btn-row">
       <button class="btn-primary" onclick="openPoll('${currentPollId}')">✏️ 투표하러 가기</button>
+      <button class="btn-download" onclick="downloadResult()">📸 이미지 저장</button>
       <button class="btn-secondary" onclick="showHome()">🏠 홈으로</button>
     </div>
   </div>`;
@@ -638,6 +653,42 @@ async function deletePoll(pollId) {
   await dbSet(`votes/${pollId}`, null);
   document.querySelector(".modal-overlay").remove();
   showHome();
+}
+
+// ── Download ──
+async function downloadResult() {
+  const btn = document.querySelector(".btn-download");
+  btn.disabled = true; btn.textContent = "⏳ 캡처 중...";
+  try {
+    const card = document.getElementById("result-card");
+    // temporarily hide buttons for clean capture
+    const btnRow = card.querySelector(".btn-row");
+    const backBtn = card.querySelector(".btn-back");
+    const liveLabel = card.querySelector(".live-label");
+    if (btnRow) btnRow.style.display = "none";
+    if (backBtn) backBtn.style.display = "none";
+    if (liveLabel) liveLabel.style.display = "none";
+
+    const canvas = await html2canvas(card, {
+      scale: 2,
+      backgroundColor: "#FFF0F5",
+      useCORS: true,
+      logging: false,
+    });
+
+    if (btnRow) btnRow.style.display = "";
+    if (backBtn) backBtn.style.display = "";
+    if (liveLabel) liveLabel.style.display = "";
+
+    const link = document.createElement("a");
+    link.download = `${currentPollData.title || "투표결과"}_${new Date().toLocaleDateString("ko")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  } catch(e) {
+    alert("이미지 저장에 실패했습니다.");
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = "📸 이미지 저장";
 }
 
 // ── Util ──
