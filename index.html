@@ -120,7 +120,9 @@
   .poll-card .meta {
     font-size: 13px; color: #E07090; font-weight: 600;
     background: #FFF0F3; padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap;
   }
+  .poll-card .meta.done { background: #E8F5E9; color: #2E7D32; }
 
   /* ── User grid ── */
   .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
@@ -331,8 +333,18 @@ function renderConfigNotice() {
 // ════════════════════════════════════════════════════
 async function showHome() {
   const polls = (await dbGet("polls")) || {};
+  const allVotes = (await dbGet("votes")) || {};
   const list = Object.entries(polls)
-    .map(([id, d]) => ({ id, ...d }))
+    .map(([id, d]) => {
+      const members = d.members || [];
+      const pollVotes = allVotes[id] || {};
+      const votedCount = members.filter(m => {
+        const v = pollVotes[sanitizeKey(m)];
+        return v && Object.keys(v).length > 0;
+      }).length;
+      const totalCount = members.length;
+      return { id, ...d, votedCount, totalCount };
+    })
     .sort((a, b) => (b.created || 0) - (a.created || 0));
 
   app.innerHTML = `
@@ -348,7 +360,7 @@ async function showHome() {
       ${list.map(p => `
         <button class="poll-card" onclick="openPoll('${p.id}')">
           <span class="title">${esc(p.title)}</span>
-          <span class="meta">${(p.members||[]).length}명</span>
+          <span class="meta ${p.votedCount === p.totalCount ? 'done' : ''}">${p.votedCount}/${p.totalCount}명 투표</span>
         </button>
       `).join("")}
     </div>` : ""}
