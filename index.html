@@ -337,7 +337,7 @@ const firebaseConfig = {
 const DAYS=["월","화","수","목","금"];
 const SLOTS=["1교시","2교시","3교시","4교시","점심시간","5교시","6교시","7교시"];
 const ICONS=["📖","📝","📐","📚","🍱","✏️","🔬","🎒"];
-const DEFAULT_MEMBERS=["백은경","유현주","이숙향","조현공","김하은","송석리"];
+const DEFAULT_MEMBERS=["최윤지","조현공","김하은","송석리"];
 
 const THEMES=[
   {id:"pink",emoji:"💕",label:"러블리 핑크",preview:"#FF8FA3"},
@@ -494,7 +494,7 @@ async function showHome(){
     // New poll
     +'<div class="section"><h3 class="section-title">✨ 새 투표 만들기</h3>'
     +'<input id="inp-title" placeholder="투표 제목 (예: 수리정보교육부 회의)">'
-    +'<textarea id="inp-members" placeholder="참여자 이름 (쉼표로 구분)&#10;예: 백은경, 유현주, 이숙향, 조현공, 김하은, 송석리"></textarea>'
+    +'<textarea id="inp-members" placeholder="참여자 이름 (쉼표로 구분)&#10;예: 석리송, 송석리, 리석송, 송리석, 석송리"></textarea>'
     +'<button class="btn-primary" onclick="createPoll()">'+getSelEmoji()+' 투표 시작하기</button>'
     +'<button class="btn-quick" onclick="quickStart()">⚡ 수리정보교육부 바로 시작</button></div>'
     // Archived polls
