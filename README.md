@@ -1,4 +1,4 @@
-# [💕 우리 언제 만나? — 시간 약속 투표 앱](https://greatsong.github.io/schedule-poll/)
+# [💕 우리 언제 만나? — 시간 약속 투표 앱(https://greatsong.github.io/schedule-poll/)](https://greatsong.github.io/schedule-poll/)
 
 > 선생님들 간 시간 약속을 잡기 위한 **실시간 투표 웹앱**입니다.
 > 누구나 링크 하나로 접속해서 가능한 시간을 탭하면, 모든 사람의 결과가 실시간으로 모입니다.
