@@ -245,6 +245,76 @@ textarea{min-height:80px;resize:vertical}
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(20px)}}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(40,40,40,.92);color:#fff;padding:12px 24px;border-radius:14px;
+  font-size:14px;font-weight:600;z-index:999;backdrop-filter:blur(8px);
+  box-shadow:0 4px 20px rgba(0,0,0,.2);animation:toastIn .3s ease;
+  pointer-events:none;white-space:nowrap;
+}
+.toast.hide{animation:toastOut .3s ease forwards}
+
+/* Invite link box */
+.invite-box{
+  background:var(--tag-bg);border:1px solid var(--section-border);border-radius:14px;
+  padding:14px 16px;margin-top:16px;
+}
+.invite-box .label{font-size:12px;font-weight:700;color:var(--primary-muted);margin-bottom:8px}
+.invite-box .link-row{display:flex;gap:8px;align-items:center}
+.invite-box input{flex:1;margin-bottom:0;font-size:12px;padding:10px 12px;background:rgba(255,255,255,.8)}
+.invite-box .copy-btn{
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));color:#fff;
+  border:none;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;
+}
+.invite-box .copy-btn:hover{transform:translateY(-1px)}
+
+/* Archive section */
+.archive-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;padding:8px 0;color:var(--primary-muted);font-size:14px;font-weight:600;
+  border:none;background:none;width:100%;font-family:inherit;margin-top:24px;
+  border-top:1px dashed var(--section-border);padding-top:16px;
+}
+.archive-toggle .arrow{transition:transform .3s;font-size:12px}
+.archive-toggle .arrow.open{transform:rotate(180deg)}
+.archive-list{overflow:hidden;transition:max-height .3s ease}
+
+/* Archive badge */
+.poll-card .archived-badge{
+  font-size:11px;color:#888;background:#f0f0f0;padding:2px 8px;border-radius:10px;font-weight:600;
+}
+
+/* Action buttons in poll */
+.action-bar{
+  display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;
+}
+.btn-action{
+  background:var(--tag-bg);color:var(--primary-muted);border:1px solid var(--section-border);
+  border-radius:12px;padding:8px 16px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:all .2s;
+}
+.btn-action:hover{background:var(--cell-hover)}
+.btn-action.danger{color:#C0392B;border-color:#FADBD8}
+.btn-action.danger:hover{background:#FDEDEC}
+
+/* Modal overlay */
+.modal-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;z-index:100;
+  backdrop-filter:blur(4px);animation:fadeSlideIn .2s ease;padding:20px;
+}
+.modal-box{
+  background:#fff;border-radius:24px;padding:28px 24px;max-width:380px;width:100%;
+  box-shadow:0 16px 48px rgba(0,0,0,.15);text-align:center;
+}
+.modal-box h3{font-size:18px;font-weight:800;color:var(--primary);margin-bottom:8px}
+.modal-box p{font-size:13px;color:#666;margin-bottom:20px;line-height:1.5}
+.modal-box .btn-row{justify-content:center}
 </style>
 </head>
 <body data-theme="pink">
@@ -285,6 +355,8 @@ const USER_EMOJIS={pink:"🙋‍♀️",sakura:"👩‍🏫",peach:"🙋‍♀�
 const app=document.getElementById("app");
 let db,currentPollId,currentPollData,currentUser,currentTheme;
 let pollListener=null;
+let currentScreen="loading";
+let showArchived=false;
 
 function getUserColors(){
   const s=getComputedStyle(document.body);
@@ -297,8 +369,6 @@ function getHomeEmoji(){return HOME_EMOJIS[currentTheme]||"💕"}
 function getVoteEmoji(){return VOTE_EMOJIS[currentTheme]||"📅"}
 function getUserEmoji(){return USER_EMOJIS[currentTheme]||"🙋‍♀️"}
 
-let currentScreen="loading";
-
 function setTheme(id){
   currentTheme=id;
   document.body.setAttribute("data-theme",id);
@@ -306,7 +376,6 @@ function setTheme(id){
   document.querySelectorAll(".theme-btn").forEach(b=>{
     b.classList.toggle("active",b.dataset.theme===id);
   });
-  // Re-render current screen to update emojis
   if(currentScreen==="home") showHome();
   else if(currentScreen==="select-user"&&currentPollId) openPoll(currentPollId);
   else if(currentScreen==="vote"&&currentUser) showVote();
@@ -320,6 +389,53 @@ function renderThemePicker(){
   ).join("")+'</div>';
 }
 
+// ── Toast ──
+function showToast(msg,duration){
+  const old=document.querySelector('.toast');if(old)old.remove();
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.classList.add('hide');setTimeout(()=>t.remove(),300)},duration||2000);
+}
+
+// ── Generate invite key ──
+function genKey(){
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  let k='';for(let i=0;i<6;i++)k+=chars[Math.floor(Math.random()*chars.length)];
+  return k;
+}
+
+// ── Get invite link for a poll ──
+function getInviteLink(pollId,key){
+  const base=location.href.split('?')[0].split('#')[0];
+  return base+'?p='+pollId+'&k='+key;
+}
+
+// ── Copy to clipboard ──
+function copyInviteLink(){
+  if(!currentPollData||!currentPollId)return;
+  const link=getInviteLink(currentPollId,currentPollData.key||'');
+  navigator.clipboard.writeText(link).then(()=>{
+    showToast('📋 초대 링크가 복사되었습니다!');
+  }).catch(()=>{
+    const inp=document.getElementById('invite-url');
+    if(inp){inp.select();document.execCommand('copy');showToast('📋 복사되었습니다!');}
+  });
+}
+
+// ── Modal ──
+function showModal(title,msg,onConfirm,confirmText,cancelText){
+  const overlay=document.createElement('div');overlay.className='modal-overlay';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
+  overlay.innerHTML='<div class="modal-box"><h3>'+title+'</h3><p>'+msg+'</p>'
+    +'<div class="btn-row">'
+    +'<button class="btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">'+(cancelText||'취소')+'</button>'
+    +'<button class="btn-primary" id="modal-confirm">'+(confirmText||'확인')+'</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById('modal-confirm').onclick=()=>{overlay.remove();onConfirm()};
+}
+
+// ── Init ──
 function init(){
   currentTheme=getTheme();setTheme(currentTheme);
   if(!firebaseConfig.apiKey){
@@ -328,10 +444,30 @@ function init(){
   }
   firebase.initializeApp(firebaseConfig);
   db=firebase.database();
-  showHome();
+
+  // Check URL params for invite link
+  const params=new URLSearchParams(location.search);
+  const inviteId=params.get('p');
+  const inviteKey=params.get('k');
+  if(inviteId&&inviteKey){
+    // Clean URL without reloading
+    history.replaceState(null,'',location.pathname);
+    verifyAndOpen(inviteId,inviteKey);
+  } else {
+    showHome();
+  }
 }
+
+async function verifyAndOpen(pollId,key){
+  const poll=await dbGet("polls/"+pollId);
+  if(!poll){showToast('❌ 투표를 찾을 수 없습니다');showHome();return}
+  if(poll.key&&poll.key!==key){showToast('🔒 초대 링크가 올바르지 않습니다');showHome();return}
+  openPoll(pollId);
+}
+
 function dbSet(p,d){return db.ref(p).set(d)}
 function dbGet(p){return db.ref(p).once("value").then(s=>s.val())}
+function dbUpdate(p,d){return db.ref(p).update(d)}
 function dbListen(p,cb){
   if(pollListener)pollListener();
   const ref=db.ref(p);const fn=ref.on("value",s=>cb(s.val()));
@@ -343,26 +479,74 @@ async function showHome(){
   if(pollListener){pollListener();pollListener=null}
   currentScreen="home";
   const polls=(await dbGet("polls"))||{};
-  const list=Object.entries(polls).map(([id,d])=>({id,...d})).sort((a,b)=>(b.created||0)-(a.created||0));
-  app.innerHTML='<div class="card">'+renderThemePicker()+'<div class="header"><span class="emoji">'+getHomeEmoji()+'</span><h1>우리 언제 만나?</h1><p>시간 약속 투표</p></div>'
-    +(list.length?'<div class="section"><h3 class="section-title">📋 진행 중인 투표</h3>'+list.map(p=>'<button class="poll-card" onclick="openPoll(\''+p.id+'\')"><span class="title">'+esc(p.title)+'</span><span class="meta">'+(p.members||[]).length+'명</span></button>').join("")+'</div>':'')
+  const all=Object.entries(polls).map(([id,d])=>({id,...d})).sort((a,b)=>(b.created||0)-(a.created||0));
+  const active=all.filter(p=>!p.archived);
+  const archived=all.filter(p=>p.archived);
+
+  app.innerHTML='<div class="card">'+renderThemePicker()
+    +'<div class="header"><span class="emoji">'+getHomeEmoji()+'</span><h1>우리 언제 만나?</h1><p>시간 약속 투표</p></div>'
+    // Active polls
+    +(active.length?'<div class="section"><h3 class="section-title">📋 진행 중인 투표</h3>'
+      +active.map(p=>'<button class="poll-card" onclick="openPoll(\''+p.id+'\')">'
+        +'<span class="title">'+esc(p.title)+'</span>'
+        +'<span class="meta">'+(p.members||[]).length+'명</span></button>').join("")
+      +'</div>':'')
+    // New poll
     +'<div class="section"><h3 class="section-title">✨ 새 투표 만들기</h3>'
     +'<input id="inp-title" placeholder="투표 제목 (예: 수리정보교육부 회의)">'
     +'<textarea id="inp-members" placeholder="참여자 이름 (쉼표로 구분)&#10;예: 백은경, 유현주, 이숙향, 조현공, 김하은, 송석리"></textarea>'
     +'<button class="btn-primary" onclick="createPoll()">'+getSelEmoji()+' 투표 시작하기</button>'
-    +'<button class="btn-quick" onclick="quickStart()">⚡ 수리정보교육부 바로 시작</button></div></div>';
+    +'<button class="btn-quick" onclick="quickStart()">⚡ 수리정보교육부 바로 시작</button></div>'
+    // Archived polls
+    +(archived.length?
+      '<button class="archive-toggle" onclick="toggleArchiveList()">'
+      +'<span>📦 마감된 투표 ('+archived.length+'개)</span>'
+      +'<span class="arrow '+(showArchived?'open':'')+'">▼</span></button>'
+      +'<div class="archive-list" style="max-height:'+(showArchived?archived.length*60+'px':'0')+';">'
+      +archived.map(p=>'<button class="poll-card" onclick="openPoll(\''+p.id+'\')" style="opacity:.65">'
+        +'<span class="title">'+esc(p.title)+'</span>'
+        +'<span class="archived-badge">마감</span></button>').join("")
+      +'</div>':'')
+    +'</div>';
 }
+
+function toggleArchiveList(){
+  showArchived=!showArchived;
+  const list=document.querySelector('.archive-list');
+  const arrow=document.querySelector('.archive-toggle .arrow');
+  if(list){list.style.maxHeight=showArchived?list.scrollHeight+'px':'0'}
+  if(arrow){arrow.classList.toggle('open',showArchived)}
+}
+
 async function createPoll(){
   const title=(document.getElementById("inp-title").value.trim())||"시간 약속 투표";
   const raw=document.getElementById("inp-members").value.trim();
   const members=raw?raw.split(/[,，\s]+/).map(s=>s.trim()).filter(Boolean):DEFAULT_MEMBERS;
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  await dbSet("polls/"+id,{title,members,created:Date.now()});
+  const key=genKey();
+  await dbSet("polls/"+id,{title,members,key,created:Date.now()});
   openPoll(id);
 }
 function quickStart(){
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  dbSet("polls/"+id,{title:"수리정보교육부 시간 약속",members:DEFAULT_MEMBERS,created:Date.now()}).then(()=>openPoll(id));
+  const key=genKey();
+  dbSet("polls/"+id,{title:"수리정보교육부 시간 약속",members:DEFAULT_MEMBERS,key,created:Date.now()}).then(()=>openPoll(id));
+}
+
+// ═══ ARCHIVE / UNARCHIVE ═══
+function archivePoll(){
+  showModal('📦 투표 마감','이 투표를 마감하시겠습니까?<br>마감된 투표는 홈 화면 하단으로 이동합니다.',()=>{
+    dbUpdate("polls/"+currentPollId,{archived:true}).then(()=>{
+      showToast('📦 투표가 마감되었습니다');showHome();
+    });
+  },'마감하기');
+}
+function unarchivePoll(){
+  dbUpdate("polls/"+currentPollId,{archived:null}).then(()=>{
+    showToast('📋 투표가 다시 열렸습니다');
+    currentPollData.archived=null;
+    openPoll(currentPollId);
+  });
 }
 
 // ═══ SELECT USER ═══
@@ -374,16 +558,37 @@ async function openPoll(id){
   currentPollData=poll;
   const votes=(await dbGet("votes/"+id))||{};
   const colors=getUserColors();
+  const isArchived=poll.archived;
+  const inviteLink=getInviteLink(id,poll.key||'');
+
   app.innerHTML='<div class="card">'+renderThemePicker()
     +'<button class="btn-back" onclick="showHome()">← 홈으로</button>'
-    +'<div class="header"><span class="emoji">'+getUserEmoji()+'</span><h1>'+esc(poll.title)+'</h1><p>선생님 성함을 선택해주세요!</p></div>'
-    +'<div class="user-grid">'+poll.members.map((name,i)=>{
+    +'<div class="header"><span class="emoji">'+getUserEmoji()+'</span><h1>'+esc(poll.title)+'</h1>'
+    +(isArchived?'<p style="color:#999">📦 마감된 투표</p>':'<p>선생님 성함을 선택해주세요!</p>')
+    +'</div>'
+    // Invite link
+    +'<div class="invite-box"><div class="label">🔗 초대 링크</div>'
+    +'<div class="link-row">'
+    +'<input id="invite-url" value="'+esc(inviteLink)+'" readonly onclick="this.select()">'
+    +'<button class="copy-btn" onclick="copyInviteLink()">복사</button>'
+    +'</div></div>'
+    // User grid
+    +'<div class="user-grid" style="margin-top:16px">'+poll.members.map((name,i)=>{
       const v=votes[sanitizeKey(name)];const hasVoted=v&&Object.keys(v).length>0;
       const c1=colors[i%6],c2=colors[(i+1)%6];
       return '<button class="user-btn" style="background:linear-gradient(135deg,'+c1+'88,'+c2+'88)" onclick="selectUser(\''+esc(name)+'\')">'
         +'<span class="name">'+esc(name)+'</span>'+(hasVoted?'<span class="voted">✅ 투표완료</span>':'')+'</button>';
     }).join("")+'</div>'
-    +'<div class="btn-row"><button class="btn-secondary" onclick="showResult()">📊 전체 결과 보기</button></div></div>';
+    // Action bar
+    +'<div class="btn-row" style="margin-top:16px">'
+    +'<button class="btn-secondary" onclick="showResult()">📊 전체 결과 보기</button>'
+    +'</div>'
+    +'<div class="action-bar">'
+    +(isArchived
+      ?'<button class="btn-action" onclick="unarchivePoll()">📋 다시 열기</button>'
+      :'<button class="btn-action danger" onclick="archivePoll()">📦 투표 마감</button>')
+    +'</div>'
+    +'</div>';
 }
 function selectUser(name){currentUser=name;showVote()}
 
