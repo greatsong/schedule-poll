@@ -256,7 +256,7 @@ schedule-poll/
 3. `Ctrl+F` (또는 `Cmd+F`)로 아래 부분을 검색합니다:
 
 ```javascript
-const DEFAULT_MEMBERS=["백은경","유현주","이숙향","조현공","김하은","송석리"];
+const DEFAULT_MEMBERS=["석리송","송리석","리석송","송석리"];
 ```
 
 4. 따옴표 안의 이름을 원하는 멤버로 바꿉니다:
