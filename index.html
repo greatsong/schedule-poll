@@ -278,6 +278,9 @@ const THEMES=[
   {id:"green",emoji:"🌿",label:"포레스트 그린",preview:"#52B788"},
 ];
 const SEL_EMOJIS={pink:"💖",sakura:"🌸",peach:"🧡",lavender:"💜",ocean:"💙",green:"🌿"};
+const HOME_EMOJIS={pink:"💕",sakura:"🌸",peach:"🍑",lavender:"💜",ocean:"🌊",green:"🌿"};
+const VOTE_EMOJIS={pink:"📅",sakura:"🗓️",peach:"📅",lavender:"🔮",ocean:"🗓️",green:"📅"};
+const USER_EMOJIS={pink:"🙋‍♀️",sakura:"👩‍🏫",peach:"🙋‍♀️",lavender:"🧑‍🏫",ocean:"🙋‍♀️",green:"👩‍🏫"};
 
 const app=document.getElementById("app");
 let db,currentPollId,currentPollData,currentUser,currentTheme;
@@ -290,6 +293,11 @@ function getUserColors(){
           s.getPropertyValue("--uc5").trim(),s.getPropertyValue("--uc6").trim()];
 }
 function getSelEmoji(){return SEL_EMOJIS[currentTheme]||"💖"}
+function getHomeEmoji(){return HOME_EMOJIS[currentTheme]||"💕"}
+function getVoteEmoji(){return VOTE_EMOJIS[currentTheme]||"📅"}
+function getUserEmoji(){return USER_EMOJIS[currentTheme]||"🙋‍♀️"}
+
+let currentScreen="loading";
 
 function setTheme(id){
   currentTheme=id;
@@ -298,6 +306,11 @@ function setTheme(id){
   document.querySelectorAll(".theme-btn").forEach(b=>{
     b.classList.toggle("active",b.dataset.theme===id);
   });
+  // Re-render current screen to update emojis
+  if(currentScreen==="home") showHome();
+  else if(currentScreen==="select-user"&&currentPollId) openPoll(currentPollId);
+  else if(currentScreen==="vote"&&currentUser) showVote();
+  else if(currentScreen==="result"&&currentPollId) showResult();
 }
 function getTheme(){return localStorage.getItem("poll-theme")||"pink"}
 
@@ -328,9 +341,10 @@ function dbListen(p,cb){
 // ═══ HOME ═══
 async function showHome(){
   if(pollListener){pollListener();pollListener=null}
+  currentScreen="home";
   const polls=(await dbGet("polls"))||{};
   const list=Object.entries(polls).map(([id,d])=>({id,...d})).sort((a,b)=>(b.created||0)-(a.created||0));
-  app.innerHTML='<div class="card">'+renderThemePicker()+'<div class="header"><span class="emoji">💕</span><h1>우리 언제 만나?</h1><p>시간 약속 투표</p></div>'
+  app.innerHTML='<div class="card">'+renderThemePicker()+'<div class="header"><span class="emoji">'+getHomeEmoji()+'</span><h1>우리 언제 만나?</h1><p>시간 약속 투표</p></div>'
     +(list.length?'<div class="section"><h3 class="section-title">📋 진행 중인 투표</h3>'+list.map(p=>'<button class="poll-card" onclick="openPoll(\''+p.id+'\')"><span class="title">'+esc(p.title)+'</span><span class="meta">'+(p.members||[]).length+'명</span></button>').join("")+'</div>':'')
     +'<div class="section"><h3 class="section-title">✨ 새 투표 만들기</h3>'
     +'<input id="inp-title" placeholder="투표 제목 (예: 수리정보교육부 회의)">'
@@ -354,7 +368,7 @@ function quickStart(){
 // ═══ SELECT USER ═══
 async function openPoll(id){
   if(pollListener){pollListener();pollListener=null}
-  currentPollId=id;currentUser=null;
+  currentPollId=id;currentUser=null;currentScreen="select-user";
   const poll=await dbGet("polls/"+id);
   if(!poll){showHome();return}
   currentPollData=poll;
@@ -362,7 +376,7 @@ async function openPoll(id){
   const colors=getUserColors();
   app.innerHTML='<div class="card">'+renderThemePicker()
     +'<button class="btn-back" onclick="showHome()">← 홈으로</button>'
-    +'<div class="header"><span class="emoji">🙋‍♀️</span><h1>'+esc(poll.title)+'</h1><p>선생님 성함을 선택해주세요!</p></div>'
+    +'<div class="header"><span class="emoji">'+getUserEmoji()+'</span><h1>'+esc(poll.title)+'</h1><p>선생님 성함을 선택해주세요!</p></div>'
     +'<div class="user-grid">'+poll.members.map((name,i)=>{
       const v=votes[sanitizeKey(name)];const hasVoted=v&&Object.keys(v).length>0;
       const c1=colors[i%6],c2=colors[(i+1)%6];
@@ -375,6 +389,7 @@ function selectUser(name){currentUser=name;showVote()}
 
 // ═══ VOTE ═══
 function showVote(){
+  currentScreen="vote";
   const userKey=sanitizeKey(currentUser);
   dbListen("votes/"+currentPollId+"/"+userKey,data=>{renderVoteGrid(data||{})});
 }
@@ -382,7 +397,7 @@ function renderVoteGrid(userVotes){
   const emoji=getSelEmoji();
   app.innerHTML='<div class="card wide">'+renderThemePicker()
     +'<button class="btn-back" onclick="openPoll(\''+currentPollId+'\')">← 선생님 선택</button>'
-    +'<div class="header"><span class="emoji">📅</span><h1>'+esc(currentUser)+' 선생님</h1><p>가능한 시간을 탭하세요 '+emoji+'</p></div>'
+    +'<div class="header"><span class="emoji">'+getVoteEmoji()+'</span><h1>'+esc(currentUser)+' 선생님</h1><p>가능한 시간을 탭하세요 '+emoji+'</p></div>'
     +'<div class="live-label"><span class="live-dot"></span>실시간 동기화 중</div>'
     +'<div class="grid-wrap"><div class="grid"><div></div>'
     +DAYS.map(d=>'<div class="grid-day">'+d+'요일</div>').join("")
@@ -402,6 +417,7 @@ function toggleVote(day,slot){
 
 // ═══ RESULT ═══
 function showResult(){
+  currentScreen="result";
   dbListen("votes/"+currentPollId,allVotes=>{renderResult(allVotes||{})});
 }
 function renderResult(allVotes){
