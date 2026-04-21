@@ -172,8 +172,6 @@ textarea{min-height:80px;resize:vertical}
 .loading{text-align:center;padding-top:100px}
 .loading .spin{font-size:48px;animation:pulse 1.2s ease-in-out infinite}
 .loading p{color:var(--primary);font-size:16px;margin-top:12px}
-
-/* ── New feature styles ── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,.92);color:#fff;padding:12px 24px;border-radius:14px;font-size:14px;font-weight:600;z-index:999;backdrop-filter:blur(8px);box-shadow:0 4px 20px rgba(0,0,0,.2);animation:toastIn .3s ease;pointer-events:none;white-space:nowrap}
 .toast.hide{animation:toastOut .3s ease forwards}
 .invite-box{background:var(--tag-bg);border:1px solid var(--section-border);border-radius:14px;padding:14px 16px;margin-top:16px}
@@ -197,7 +195,6 @@ textarea{min-height:80px;resize:vertical}
 .modal-box p{font-size:13px;color:#666;margin-bottom:20px;line-height:1.5}
 .modal-box .btn-row{justify-content:center}
 .pw-hint{font-size:11px;color:#999;margin-top:4px;margin-bottom:0}
-
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
@@ -227,7 +224,6 @@ const SLOTS=["0교시","1교시","2교시","3교시","4교시","점심시간","5
 const ICONS=["🌅","📖","📝","📐","📚","🍱","✏️","🔬","🎒","🌙"];
 const DEFAULT_MEMBERS=["최윤지","조현공","김하은","송석리"];
 
-// ── Custom SVG Icons ──
 const LAV_ICON='<svg viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:middle"><polygon points="50,6 18,42 50,94 82,42" fill="#9B7ED8"/><polygon points="50,6 18,42 82,42" fill="#C4B0E8"/><polygon points="50,6 36,28 64,28" fill="#E9DEFF" opacity=".6"/><line x1="50" y1="6" x2="50" y2="94" stroke="#fff" stroke-width="2" opacity=".12"/></svg>';
 const CORAL_ICON='<svg viewBox="0 0 100 100" width="1em" height="1em" style="vertical-align:middle"><circle cx="50" cy="50" r="36" fill="#F4845F"/><circle cx="42" cy="40" r="14" fill="#F6A886" opacity=".5"/><circle cx="58" cy="36" r="7" fill="#FFD0B5" opacity=".5"/><circle cx="36" cy="56" r="5" fill="#E07048" opacity=".25"/></svg>';
 
@@ -276,7 +272,6 @@ function renderThemePicker(){
   }).join("")+'</div>';
 }
 
-// ── Utilities ──
 function showToast(msg,dur){
   var old=document.querySelector('.toast');if(old)old.remove();
   var t=document.createElement('div');t.className='toast';t.textContent=msg;
@@ -316,7 +311,6 @@ function showPwModal(title,msg,onConfirm){
   };
 }
 
-// ── Firebase ──
 function dbSet(p,d){return db.ref(p).set(d)}
 function dbGet(p){return db.ref(p).once("value").then(function(s){return s.val()})}
 function dbUpdate(p,d){return db.ref(p).update(d)}
@@ -326,7 +320,6 @@ function dbListen(p,cb){
   pollListener=function(){ref.off("value",fn)};
 }
 
-// ── Init ──
 function init(){
   currentTheme=getTheme();setTheme(currentTheme);
   if(!firebaseConfig.apiKey){
@@ -363,8 +356,8 @@ function showHome(){
       +'<div class="section"><h3 class="section-title">✨ 새 투표 만들기</h3>'
       +'<input id="inp-title" placeholder="투표 제목 (예: 수리정보교육부 회의)">'
       +'<textarea id="inp-members" placeholder="참여자 이름 (쉼표로 구분)&#10;예: 석리송, 리석송, 송석리, 송리석"></textarea>'
-      +'<input id="inp-pw" type="password" placeholder="관리자 비밀번호 (투표 마감 시 필요)">'
-      +'<p class="pw-hint">💡 비밀번호를 설정하면 본인만 투표를 마감할 수 있습니다</p>'
+      +'<input id="inp-pw" type="password" placeholder="관리자 비밀번호 (투표 마감/삭제 시 필요)">'
+      +'<p class="pw-hint">💡 비밀번호를 설정하면 본인만 투표를 마감하거나 삭제할 수 있습니다</p>'
       +'<button class="btn-primary" onclick="createPoll()" style="margin-top:12px">'+getSelEmoji()+' 투표 시작하기</button>'
       +'<button class="btn-quick" onclick="quickStart()">⚡ 수리정보교육부 바로 시작</button></div>'
       +(archived.length?
@@ -398,7 +391,7 @@ function quickStart(){
   dbSet("polls/"+id,data).then(function(){openPoll(id)});
 }
 
-// ═══ ARCHIVE ═══
+// ═══ ARCHIVE / DELETE ═══
 function archivePoll(){
   if(currentPollData.adminPw){
     showPwModal('📦 투표 마감','관리자 비밀번호를 입력하세요',function(pw){
@@ -419,6 +412,18 @@ function unarchivePoll(){
     });
   } else {
     dbUpdate("polls/"+currentPollId,{archived:null}).then(function(){showToast('📋 투표가 다시 열렸습니다');currentPollData.archived=null;openPoll(currentPollId)});
+  }
+}
+function deletePoll(){
+  if(currentPollData.adminPw){
+    showPwModal('🗑️ 투표 삭제','관리자 비밀번호를 입력하세요<br><b style="color:#C0392B">삭제하면 투표 데이터가 영구 삭제됩니다!</b>',function(pw){
+      if(pw!==currentPollData.adminPw){showToast('🔒 비밀번호가 틀렸습니다');return}
+      Promise.all([db.ref("polls/"+currentPollId).remove(),db.ref("votes/"+currentPollId).remove()]).then(function(){showToast('🗑️ 투표가 삭제되었습니다');showHome()});
+    });
+  } else {
+    showModal('🗑️ 투표 삭제','정말 삭제하시겠습니까?<br><b style="color:#C0392B">삭제하면 투표 데이터가 영구 삭제됩니다!</b>',function(){
+      Promise.all([db.ref("polls/"+currentPollId).remove(),db.ref("votes/"+currentPollId).remove()]).then(function(){showToast('🗑️ 투표가 삭제되었습니다');showHome()});
+    },'삭제하기');
   }
 }
 
@@ -447,6 +452,7 @@ function openPoll(id){
       +'<div class="action-bar">'
       +(isArchived?'<button class="btn-action" onclick="unarchivePoll()">📋 다시 열기</button>'
                   :'<button class="btn-action danger" onclick="archivePoll()">📦 투표 마감</button>')
+      +'<button class="btn-action danger" onclick="deletePoll()">🗑️ 삭제</button>'
       +'</div></div>';
   });
 }
